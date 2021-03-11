@@ -1,131 +1,79 @@
-import React, { useState, useRef } from 'react'
-import { 
-	StyleSheet, 
-	Text, 
-	View, 
-	TouchableOpacity, 
-	TextInput, 
-	SafeAreaView,
-	Keyboard 
-} from 'react-native'
+import React, { useState, useEffect } from "react";
+import { View, Text, StyleSheet } from "react-native";
+import { Picker } from "@react-native-picker/picker"
+import axios from 'axios';
 
-import api from './src/services/api'
+const App = () => {
+  const [selectedUf, setSelectedUf] = useState("");
+  const [selectedCity, setSelectedCity] = useState("");
+  const [estados, setEstados] = useState([]);
+  const [cidades, setCidades] = useState([]);
+  const [loading, setLoading] = useState(false);
 
-export default function App() {
+  useEffect(() => {
+    ( async () => {
+      await axios.get('https://servicodados.ibge.gov.br/api/v1/localidades/estados')
+        .then((res) => {
+          let sort = res.data.sort(function (x, y) {
+            return x.nome.localeCompare(y.nome)
+          })
+          setEstados(sort)
+          setLoading(true)
+      })
+    } )()
+  }, [])
 
-	const [cep, setCep] = useState('')
-	const inputRef = useRef(null)
-	const [cepUser, setCepUser] = useState(null)
+  useEffect(() => {
+    ( async () => {
+      await axios.get(`https://servicodados.ibge.gov.br/api/v1/localidades/estados/${selectedUf}/municipios`)
+        .then((res) => {
+          let sort = res.data.sort(function (x, y) {
+            return x.nome.localeCompare(y.nome)
+          })
+          setCidades(sort)
+      })
+    } )()
+  }, [selectedUf])
 
-	
-	async function buscar(){
-		if(cep == ''){
-			alert('Digite um cep valido')
-			return;
-		}
-		
-		try{
-			const response = await api.get(`/${cep}/json`)
-			Keyboard.dismiss() //garantir que o teclado sera fechado
-			setCepUser(response.data) //setando as informacoes que chegaram da api
-			// console.warn(response.data)
-		}catch(error) {
-			console.log('ERROR: ' + error)
-		}	
-	}
-	
-	function limpar(){
-		setCep('')
-		inputRef.current.focus()
-		setCepUser(null)
-	}
+  return (
+    <View style={styles.container}>
+      <Picker
+        selectedValue={selectedUf}
+        style={{ height: 50, width: 150, color: "#05375a" }}
+        onValueChange={(itemValue, itemIndex) => setSelectedUf(itemValue)}
+      >
+      <Picker.Item label="Selecione" value="" />
+      { 
+        loading && 
+        estados.map((estado, index) => {
+          return <Picker.Item key={ index } label={ estado.nome } value={ estado.sigla } />
+        }) 
+      }
+      </Picker>
 
-	return (
-		<SafeAreaView style={styles.container}>
-			<View style={{alignItems: 'center'}}>
-				<Text style={styles.text}>Digite o cep selecionado</Text>
-				<TextInput 
-					style={styles.input}
-					placeholder="Ex 79003241"
-					value={cep}
-					onChangeText={ (texto) => setCep(texto) }
-					keyboardType="numeric"
-					ref={inputRef}
-				/>
-			</View>
+      <Picker
+        selectedValue={selectedCity}
+        style={{ marginTop: 100, height: 50, width: 150, color: "#05375a" }}
+        onValueChange={(itemValue, itemIndex) => setSelectedCity(itemValue)}
+      >
+      { 
+        loading && 
+        cidades.map((cidade, index) => {
+          return <Picker.Item key={ index } label={ cidade.nome } value={ cidade.sigla } />
+        }) 
+      }
+      </Picker>
 
-			<View style={styles.areaBtn}>
-				<TouchableOpacity 
-					style={[styles.botao, {backgroundColor: '#1d75cd'}]}
-					onPress={buscar}
-				>
-					<Text style={styles.botaoText}>Buscar</Text>
-				</TouchableOpacity>
-				<TouchableOpacity 
-					style={[styles.botao, {backgroundColor: '#cd3e1d'}]}
-					onPress={limpar}
-				>
-					<Text style={styles.botaoText}>Limpar</Text>
-				</TouchableOpacity>
-			</View>
-
-			{ cepUser && 
-				<View style={styles.resultado}>
-					<Text style={styles.itemText}>CEP: {cepUser.cep}</Text>
-					<Text style={styles.itemText}>Logradouro: {cepUser.logradouro}</Text>
-					<Text style={styles.itemText}>Bairro: {cepUser.bairro}</Text>
-					<Text style={styles.itemText}>Cidade: {cepUser.localidade}</Text>
-					<Text style={styles.itemText}>Estado: {cepUser.uf}</Text>
-				</View>
-			}
-			
-
-		</SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-	container: {
-		flex: 1,
-	},
-	text: {
-		marginTop: 25,
-		marginBottom: 15,
-		fontSize: 25,
-		fontWeight: "bold",
-	},
-	input: {
-		backgroundColor: '#FFF',
-		borderWidth: 1,
-		borderColor: '#DDD',
-		borderRadius: 5,
-		width: '90%',
-		padding: 10,
-		fontSize: 18,
-	},
-	areaBtn: {
-		alignItems: "center",
-		flexDirection: "row",
-		marginTop: 15,
-		justifyContent: "space-around",
-	},
-	botao: {
-		height: 50,
-		justifyContent: "center",
-		alignItems: "center",
-		padding: 15,
-		borderRadius: 5,	
-	},
-	botaoText: {
-		fontSize: 22,
-		color: '#fff',
-	},
-	resultado: {
-		flex: 1,
-		justifyContent: "center",
-		alignItems: 'center'
-	},
-	itemText: {
-		fontSize: 22,
-	},	  
+  container: {
+    flex: 1,
+    paddingTop: 40,
+    alignItems: "center"
+  }
 });
+
+export default App;
