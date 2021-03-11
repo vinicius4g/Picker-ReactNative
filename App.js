@@ -59,7 +59,7 @@ const App = () => {
       { 
         loading && 
         cidades.map((cidade, index) => {
-          return <Picker.Item key={ index } label={ cidade.nome } value={ cidade.sigla } />
+          return <Picker.Item key={ index } label={ cidade.nome } value={ cidade.nome } />
         }) 
       }
       </Picker>
